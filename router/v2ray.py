@@ -4,24 +4,18 @@ from fastapi import (
     HTTPException
 )
 from schemas import (
-    CreateSsh,
+    SshAccount,
     DeleteSsh,
-    BlockSsh
 )
 
 router = APIRouter(prefix='/v2ray', tags=['v2ray'])
 
 @router.post('/create')
-def user_info(request: CreateSsh):
+def create_account(request: SshAccount):
     
     return True
 
 @router.delete('/delete' )
-def update_user_profile(request: DeleteSsh):
-
-    return True
-
-@router.post('/block')
-def update_user_password(request: BlockSsh):
+def delete_account(request: DeleteSsh):
 
     return True
