@@ -56,8 +56,6 @@ def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
     p = subprocess.Popen(userdel_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = p.communicate()
 
-    subprocess.run(['gpasswd', '-d', request.username, 'blockUsers'])
-
     if p.returncode != 0:
         raise HTTPException(status_code=500 ,detail={'message': f'Failed to delete user {request.username}: {stderr.decode()}', 'internal_code': 1500})
     
@@ -68,6 +66,7 @@ def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
 @router.post('/block')
 def block_account(request: BlockSsh, token: str= Depends(get_auth)):
 
+    subprocess.run(['pkill', '-u', request.username])
     subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
 
     return f'username {request.username} is blocked'
