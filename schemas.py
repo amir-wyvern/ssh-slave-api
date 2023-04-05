@@ -13,7 +13,6 @@ class SshAccount(BaseModel):
 
     username : str
     password: str
-    auth_code: str
 
 class DeleteSsh(BaseModel):
 
