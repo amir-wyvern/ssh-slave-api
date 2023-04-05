@@ -48,6 +48,10 @@ def update_user_profile(request: DeleteSsh, token: str= Depends(get_auth)):
 
     try:
 
+
+        if os.path.isdir(f'/home/{request.username}'):
+            raise HTTPException(status_code= 403, detail={'message': 'user not exist', 'internal_code': 1403})
+
         userdel_cmd = ['userdel', '-r', request.username]
         subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
         subprocess.run(['pkill', '-u', request.username])
