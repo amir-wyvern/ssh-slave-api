@@ -26,7 +26,7 @@ def user_info(request: InitServer, token: str= Depends(get_auth)):
     
     with open('/home/restricted.sh', 'w') as f:
         f.write('#!/bin/rbash\necho "Connected!"\nwhile true; do\nread -p " " cmd\ndone')
-    subprocess.run(["chmod", "o+r", '/home/restricted.sh'])
+    subprocess.run(["chmod", "o+rx", '/home/restricted.sh'])
     try:
         
         subprocess.run(['groupadd', 'blockUsers'])
