@@ -64,14 +64,9 @@ def user_info(request: InitServer, token: str= Depends(get_auth)):
         stdout, stderr = p.communicate(input=f"{password}\n{password}".encode())
 
         if p.returncode != 0:
-            print(f"Failed to set password for user {username}: {stderr.decode()}")
             raise HTTPException(status_code=500 ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 1500})
         
-        else:
-            print(f"Password set successfully for user {username}")
-
         subprocess.run(['usermod', '-aG', 'sudo', 'manager'])
-
         subprocess.run(['systemctl', 'restart', 'sshd'])
     
         return 'Server Successfuly initial'
