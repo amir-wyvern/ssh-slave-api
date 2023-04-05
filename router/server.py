@@ -31,7 +31,7 @@ def user_info(request: InitServer, token: str= Depends(get_auth)):
         
         subprocess.run(['groupadd', 'blockUsers'])
         
-        new_text = 'Match User user2\n\tForceCommand /home/restricted.sh\n'
+        new_text = 'Match User *,!manager,!root\n\tForceCommand /home/restricted.sh\n'
         for line in fileinput.input('/etc/ssh/sshd_config', inplace=True):
 
             if line.startswith('Match User'):
