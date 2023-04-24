@@ -1,6 +1,7 @@
 from fastapi import (
     APIRouter,
     Depends,
+    status,
     HTTPException
 )
 from schemas import (
@@ -16,7 +17,7 @@ import os
 
 router = APIRouter(prefix='/ssh', tags=['ssh'])
 
-@router.post('/create', responses= {500: {'model': HTTPError}})
+@router.post('/create', responses= {status.HTTP_409_CONFLICT: {'model': HTTPError}, status.HTTP_500_INTERNAL_SERVER_ERROR: {'model': HTTPError}})
 def create_account(request: SshAccount, token: str= Depends(get_auth)):
     
     home_dir = "/home/" + request.username
@@ -24,7 +25,7 @@ def create_account(request: SshAccount, token: str= Depends(get_auth)):
     password = request.password
 
     if os.path.isdir(home_dir):
-        raise HTTPException(status_code= 403, detail={'message': 'user already exist', 'internal_code': 1403})
+        raise HTTPException(status_code= status.HTTP_409_CONFLICT, detail={'message': 'user already exist', 'internal_code': 3406})
     
     try:
         subprocess.run(["useradd", "-m", "-d", home_dir, username])
@@ -34,20 +35,20 @@ def create_account(request: SshAccount, token: str= Depends(get_auth)):
         stdout, stderr = p.communicate(input=f"{password}\n{password}".encode())
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail={'message':f'Exception : {e}', 'internal_code': 1500})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={'message': f'create user exception [{e}]', 'internal_code': 3501})
     
     if p.returncode != 0:
-        raise HTTPException(status_code=500 ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 1500})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 3502})
     
     else:
         return f"username {username} successfuly created"
         
 
-@router.delete('/delete' ,responses= {500: {'model': HTTPError}})
+@router.delete('/delete' ,responses= {status.HTTP_500_INTERNAL_SERVER_ERROR: {'model': HTTPError}, status.HTTP_404_NOT_FOUND: {'model': HTTPError}})
 def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
 
     if not os.path.isdir(f'/home/{request.username}'):
-        raise HTTPException(status_code= 403, detail={'message': 'user not exist', 'internal_code': 1403})
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': 'user is not exist', 'internal_code': 3403})
 
     userdel_cmd = ['userdel', '-r', request.username]
     subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
@@ -57,7 +58,7 @@ def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
     stdout, stderr = p.communicate()
 
     if p.returncode != 0:
-        raise HTTPException(status_code=500 ,detail={'message': f'Failed to delete user {request.username}: {stderr.decode()}', 'internal_code': 1500})
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to delete user {request.username}: {stderr.decode()}', 'internal_code': 3503})
     
     else:
         return f"User {request.username} deleted successfully"

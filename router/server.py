@@ -1,28 +1,26 @@
 from fastapi import (
     APIRouter,
     Depends,
+    status,
     HTTPException
 )
 from schemas import (
-    SshAccount,
-    UserResponse,
-    DeleteSsh,
-    BlockSsh,
-    InitServer
+    InitServer,
+    HTTPError
 )
 import subprocess
 from auth.auth import get_auth
-import configparser
 import fileinput
 import os
 from typing import List
+
 router = APIRouter(prefix='/server', tags=['server'])
 
-@router.post('/init')
+@router.post('/init', response_model= str, responses={status.HTTP_409_CONFLICT:{'model':HTTPError}, status.HTTP_500_INTERNAL_SERVER_ERROR:{'model':HTTPError}})
 def set_config_server(request: InitServer, token: str= Depends(get_auth)):
     
     if os.path.isfile('/home/init.txt'):
-        raise HTTPException(status_code=404, detail={'internal_code': 1404, 'message': 'init config already done!'})
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail={'internal_code': 3404, 'message': 'init config already done!'})
     
     with open('/home/restricted.sh', 'w') as f:
         f.write('#!/bin/rbash\necho "Connected!"\nwhile true; do\nread -p " " cmd\ndone')
@@ -66,17 +64,17 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
         stdout, stderr = p.communicate(input=f"{password}\n{password}".encode())
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail={'message': str(Exception), 'internal_code': 1500})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={'message': f'error [{e}]', 'internal_code': 3500})
 
     if p.returncode != 0:
-        raise HTTPException(status_code=500 ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 1500})
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 3501})
     
     try:
         subprocess.run(['usermod', '-aG', 'sudo', 'manager'])
         subprocess.run(['systemctl', 'restart', 'sshd'])
         
     except Exception as e:
-        raise HTTPException(status_code= 500, detail={'message': f'error {e}', 'internal_code': 1500})
+        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR , detail={'message': f'error [{e}]', 'internal_code': 3500})
     
     return 'Server Successfuly initial'
     
