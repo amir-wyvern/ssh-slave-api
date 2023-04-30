@@ -28,7 +28,7 @@ def create_account(request: SshAccount, token: str= Depends(get_auth)):
         raise HTTPException(status_code= status.HTTP_409_CONFLICT, detail={'message': 'user already exist', 'internal_code': 3406})
     
     try:
-        subprocess.run(["useradd", "-m", "-d", home_dir, username])
+        subprocess.run(["useradd", "-m", "-s", "/usr/bin/rbash","-d", home_dir, username])
 
         passwd_cmd = ['passwd', username]
         p = subprocess.Popen(passwd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -71,6 +71,7 @@ def block_account(request: BlockSsh, token: str= Depends(get_auth)):
     subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
 
     return f'username {request.username} is blocked'
+
 
 @router.post('/unblock')
 def unblock_account(request: BlockSsh, token: str= Depends(get_auth)):
