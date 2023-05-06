@@ -67,6 +67,9 @@ def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
 @router.post('/block')
 def block_account(request: BlockSsh, token: str= Depends(get_auth)):
 
+    if not os.path.isdir(f'/home/{request.username}'):
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': 'user is not exist', 'internal_code': 3403})
+
     subprocess.run(['pkill', '-u', request.username])
     subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
 
@@ -75,6 +78,9 @@ def block_account(request: BlockSsh, token: str= Depends(get_auth)):
 
 @router.post('/unblock')
 def unblock_account(request: BlockSsh, token: str= Depends(get_auth)):
+
+    if not os.path.isdir(f'/home/{request.username}'):
+        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': 'user is not exist', 'internal_code': 3403})
 
     subprocess.run(['gpasswd', '-d', request.username, 'blockUsers'])
     
