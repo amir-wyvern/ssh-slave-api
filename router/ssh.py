@@ -66,23 +66,31 @@ def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
         failed_count = 0
         while True:
 
-            userdel_cmd = ['userdel', '-r', user]
-            subprocess.run(['usermod', '-a', '-G', 'blockUsers', user])
-            subprocess.run(['pkill', '-u', user])
+            try:
+                userdel_cmd = ['userdel', '-r', user]
+                subprocess.run(['usermod', '-a', '-G', 'blockUsers', user])
+                subprocess.run(['pkill', '-u', user])
 
-            p = subprocess.Popen(userdel_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = p.communicate()
+                p = subprocess.Popen(userdel_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                stdout, stderr = p.communicate()
+
+            except Exception as e:
+
+                failed_count += 1
+                if failed_count == 3:
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to delete user {user}: {stderr.decode()}\nsuccessfull users [{submited_users}]\nerror [{e}]', 'internal_code': 3503})
+            
+                continue
 
             if p.returncode != 0:
                 failed_count += 1
-
                 if failed_count == 3:
-                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to delete user {user}: {stderr.decode()}\nsuccessfull users [{submited_users}]', 'internal_code': 3503})
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to delete user {user}: {stderr.decode()}\nsuccessfull users [{submited_users}]\n error [userdel command error]', 'internal_code': 3503})
                 
                 continue
 
             break
-        
+
         submited_users.append(user)
 
     return f"Users {submited_users} deleted successfully"
@@ -106,11 +114,11 @@ def block_account(request: BlockSsh, token: str= Depends(get_auth)):
                 subprocess.run(['usermod', '-a', '-G', 'blockUsers', user])
                 subprocess.run(['pkill', '-u', user])
 
-            except:
+            except Exception as e:
                 failed_count += 1
 
                 if failed_count == 3:
-                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to block user {user}\nsuccessfull users [{submited_users}]', 'internal_code': 3503})
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to block user {user}\nsuccessfull users [{submited_users}]\nerror [{e}]', 'internal_code': 3503})
                 
                 continue
 
@@ -140,11 +148,11 @@ def unblock_account(request: BlockSsh, token: str= Depends(get_auth)):
             try: 
                 subprocess.run(['gpasswd', '-d', request.username, 'blockUsers'])
 
-            except:
+            except Exception as e:
                 failed_count += 1
 
                 if failed_count == 3:
-                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to unblock user {user}\nsuccessfull users [{submited_users}]', 'internal_code': 3503})
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to unblock user {user}\nsuccessfull users [{submited_users}]\nerror [{e}]', 'internal_code': 3503})
                 
                 continue
 
