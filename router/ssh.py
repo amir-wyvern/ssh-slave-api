@@ -146,7 +146,7 @@ def unblock_account(request: BlockSsh, token: str= Depends(get_auth)):
         while True:
 
             try: 
-                subprocess.run(['gpasswd', '-d', request.username, 'blockUsers'])
+                subprocess.run(['gpasswd', '-d', user.username, 'blockUsers'])
 
             except Exception as e:
                 failed_count += 1
