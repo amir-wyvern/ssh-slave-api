@@ -5,7 +5,7 @@ from fastapi import (
     HTTPException
 )
 from schemas import (
-    SshAccount,
+    CreateSsh,
     DeleteSsh,
     BlockSsh,
     HTTPError
@@ -17,71 +17,139 @@ import os
 
 router = APIRouter(prefix='/ssh', tags=['ssh'])
 
+
 @router.post('/create', responses= {status.HTTP_409_CONFLICT: {'model': HTTPError}, status.HTTP_500_INTERNAL_SERVER_ERROR: {'model': HTTPError}})
-def create_account(request: SshAccount, token: str= Depends(get_auth)):
+def create_account(request: CreateSsh, token: str= Depends(get_auth)):
     
-    home_dir = "/home/" + request.username
-    username = request.username
-    password = request.password
+    for user in request.users:
 
-    if os.path.isdir(home_dir):
-        raise HTTPException(status_code= status.HTTP_409_CONFLICT, detail={'message': 'user already exist', 'internal_code': 3406})
-    
-    try:
-        subprocess.run(["useradd", "-m", "-s", "/usr/bin/rbash","-d", home_dir, username])
+        home_dir = "/home/" + user.username
+        username = user.username
 
-        passwd_cmd = ['passwd', username]
-        p = subprocess.Popen(passwd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdout, stderr = p.communicate(input=f"{password}\n{password}".encode())
+        if os.path.isdir(home_dir):
+            raise HTTPException(status_code= status.HTTP_409_CONFLICT, detail={'message': f'user {user.username} already exist', 'internal_code': 3406})
+    
+    submited_users = []
+    for user in request.users:
 
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={'message': f'create user exception [{e}]', 'internal_code': 3501})
-    
-    if p.returncode != 0:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 3502})
-    
-    else:
-        return f"username {username} successfuly created"
+        home_dir = "/home/" + user.username
+        username = user.username 
         
+        try:
+            subprocess.run(["useradd", "-m", "-s", "/usr/bin/rbash","-d", home_dir, username])
+
+            passwd_cmd = ['passwd', username]
+            p = subprocess.Popen(passwd_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate(input=f"{user.password}\n{user.password}".encode())
+
+        except Exception as e:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={'message': f'create user [{user.username}] , successfull users [{submited_users}] \nexception [{e}]', 'internal_code': 3511})
+        
+        if p.returncode != 0:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f"Failed to set password for user {user.username}: {stderr.decode()}\n successfull users [{submited_users}]", 'internal_code': 3502})
+        
+        submited_users.append(user)
+
+    return f"users {submited_users} successfuly created"
 
 @router.delete('/delete' ,responses= {status.HTTP_500_INTERNAL_SERVER_ERROR: {'model': HTTPError}, status.HTTP_404_NOT_FOUND: {'model': HTTPError}})
 def delete_account(request: DeleteSsh, token: str= Depends(get_auth)):
 
-    if not os.path.isdir(f'/home/{request.username}'):
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': 'user is not exist', 'internal_code': 3403})
-
-    userdel_cmd = ['userdel', '-r', request.username]
-    subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
-    subprocess.run(['pkill', '-u', request.username])
-
-    p = subprocess.Popen(userdel_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-
-    if p.returncode != 0:
-        raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to delete user {request.username}: {stderr.decode()}', 'internal_code': 3503})
+    for user in request.users:
     
-    else:
-        return f"User {request.username} deleted successfully"
+        if not os.path.isdir(f'/home/{user}'):
+            raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': f'user {user} is not exist', 'internal_code': 3403})
+
+    submited_users = []
+    for user in request.users:
+
+        failed_count = 0
+        while True:
+
+            userdel_cmd = ['userdel', '-r', user]
+            subprocess.run(['usermod', '-a', '-G', 'blockUsers', user])
+            subprocess.run(['pkill', '-u', user])
+
+            p = subprocess.Popen(userdel_cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = p.communicate()
+
+            if p.returncode != 0:
+                failed_count += 1
+
+                if failed_count == 3:
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to delete user {user}: {stderr.decode()}\nsuccessfull users [{submited_users}]', 'internal_code': 3503})
+                
+                continue
+
+            break
+        
+        submited_users.append(user)
+
+    return f"Users {submited_users} deleted successfully"
 
 
 @router.post('/block')
 def block_account(request: BlockSsh, token: str= Depends(get_auth)):
 
-    if not os.path.isdir(f'/home/{request.username}'):
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': 'user is not exist', 'internal_code': 3403})
+    for user in request.users:
+    
+        if not os.path.isdir(f'/home/{user}'):
+            raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': f'user {user} is not exist', 'internal_code': 3403})
 
-    subprocess.run(['pkill', '-u', request.username])
-    subprocess.run(['usermod', '-a', '-G', 'blockUsers', request.username])
+    submited_users = []
+    for user in request.users:
 
-    return f'username {request.username} is blocked'
+        failed_count = 0
+        while True:
+
+            try: 
+                subprocess.run(['usermod', '-a', '-G', 'blockUsers', user])
+                subprocess.run(['pkill', '-u', user])
+
+            except:
+                failed_count += 1
+
+                if failed_count == 3:
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to block user {user}\nsuccessfull users [{submited_users}]', 'internal_code': 3503})
+                
+                continue
+
+            break
+        
+        submited_users.append(user)
+
+    return f"Users {submited_users} blocked successfully"
 
 
 @router.post('/unblock')
 def unblock_account(request: BlockSsh, token: str= Depends(get_auth)):
 
-    if not os.path.isdir(f'/home/{request.username}'):
-        raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': 'user is not exist', 'internal_code': 3403})
 
-    subprocess.run(['gpasswd', '-d', request.username, 'blockUsers'])
+    for user in request.users:
     
-    return f'username {request.username} is unbloked' 
+        if not os.path.isdir(f'/home/{user}'):
+            raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail={'message': f'user {user} is not exist', 'internal_code': 3403})
+
+
+    submited_users = []
+    for user in request.users:
+
+        failed_count = 0
+        while True:
+
+            try: 
+                subprocess.run(['gpasswd', '-d', request.username, 'blockUsers'])
+
+            except:
+                failed_count += 1
+
+                if failed_count == 3:
+                    raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f'Failed to unblock user {user}\nsuccessfull users [{submited_users}]', 'internal_code': 3503})
+                
+                continue
+
+            break
+        
+        submited_users.append(user)
+    
+    return f"Users {submited_users} unblocked successfully"
