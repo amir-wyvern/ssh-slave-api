@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import List
 
 class InitServer(BaseModel):
 
@@ -14,13 +15,18 @@ class SshAccount(BaseModel):
     username : str
     password: str
 
+class CreateSsh(BaseModel):
+
+    users : List[SshAccount]
+
 class DeleteSsh(BaseModel):
 
-    username : str
-
+    users : List[str]
+    
 class BlockSsh(BaseModel):
 
-    username : str
+    users : List[str]
+
 
 class HTTPError(BaseModel):
 
