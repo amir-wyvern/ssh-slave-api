@@ -40,13 +40,13 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
             if line.startswith('#Match User'):
                 print(new_text, end='')
 
-            elif line.startswith('ClientAliveInterval'):
+            elif line.startswith('#ClientAliveInterval'):
                 print('ClientAliveInterval 5\n', end='')
 
             elif line.startswith('PermitRootLogin'):
                 print('PermitRootLogin no\n', end='')
 
-            elif line.startswith('Port'):
+            elif line.startswith('#Port'):
                 print(f'Port {request.ssh_port}\nDenyGroups blockUsers\n', end='')
 
             else:
