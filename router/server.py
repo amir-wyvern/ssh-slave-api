@@ -34,9 +34,6 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
         new_text = 'Match User *,!manager,!root\n\tForceCommand /home/restricted.sh\n'
         for line in fileinput.input('/etc/ssh/sshd_config', inplace=True):
 
-            if line.startswith('Match User'):
-                print(new_text, end='')
-
             if line.startswith('#Match User'):
                 print(new_text, end='')
 
