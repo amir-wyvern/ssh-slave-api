@@ -16,13 +16,13 @@ import logging
 import os
 
 # Create a file handler to save logs to a file
-file_handler = logging.FileHandler('ssh.log') 
-file_handler.setLevel(logging.INFO) 
-formatter = logging.Formatter('%(asctime)s - %(levelname)s | %(message)s') 
-file_handler.setFormatter(formatter) 
 
-logger = logging.getLogger('ssh.log') 
-logger.addHandler(file_handler) 
+file_handler = logging.FileHandler('ssh.log')
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s | %(message)s')
+file_handler.setFormatter(formatter)
+logger = logging.getLogger('ssh.log')
+logger.addHandler(file_handler)
 
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.INFO)
@@ -30,8 +30,16 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s | %(message)s')
 console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
+logger.setLevel(logging.INFO)
 
 router = APIRouter(prefix='/ssh', tags=['ssh'])
+
+
+@router.post('/test', responses= {status.HTTP_409_CONFLICT: {'model': HTTPError}, status.HTTP_500_INTERNAL_SERVER_ERROR: {'model': HTTPError}})
+def test(request: DeleteSsh, token: str= Depends(get_auth)):
+    
+    logger.info(f'[create] receive signal [users: {request.users}]')
+    return 'ok'    
 
 @router.post('/create', responses= {status.HTTP_409_CONFLICT: {'model': HTTPError}, status.HTTP_500_INTERNAL_SERVER_ERROR: {'model': HTTPError}})
 def create_account(request: CreateSsh, token: str= Depends(get_auth)):
