@@ -12,7 +12,24 @@ import subprocess
 from auth.auth import get_auth
 import fileinput
 import os
-from typing import List
+from typing import List, Dict
+import logging
+import re
+
+logger = logging.getLogger('server.log')
+logger.setLevel(logging.INFO)
+
+file_handler = logging.FileHandler('server.log')
+file_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s | %(message)s')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s | %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
 
 router = APIRouter(prefix='/server', tags=['server'])
 
@@ -61,9 +78,11 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
         stdout, stderr = p.communicate(input=f"{password}\n{password}".encode())
     
     except Exception as e:
+        logger.error(f'[init server] error ({e})')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail={'message': f'error [{e}]', 'internal_code': 3500})
 
     if p.returncode != 0:
+        logger.error(f'[init server] Failed to set password for user {username}: {stderr.decode()}')
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR ,detail={'message': f"Failed to set password for user {username}: {stderr.decode()}", 'internal_code': 3501})
     
     try:
@@ -71,6 +90,7 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
         subprocess.run(['systemctl', 'restart', 'sshd'])
         
     except Exception as e:
+        logger.error(f'[init server] Exception (error: {e})')
         raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR , detail={'message': f'error [{e}]', 'internal_code': 3500})
     
     return 'Server Successfuly initial'
@@ -89,3 +109,26 @@ def list_users(token: str= Depends(get_auth)):
 
     return usernames
 
+@router.get('/activeusers', response_model= List[Dict])
+def active_users(token: str= Depends(get_auth)):
+    
+    try:
+        result = subprocess.run("pgrep -a ssh | grep 'priv'", stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+    
+    except Exception as e:
+            logger.error(f'[active users] Exception (error: {e})')
+            raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR , detail={'message': f'Error in executing command [{e}]', 'internal_code': 3512})
+    
+    if result.stdout.strip():
+
+        pattern = r'sshd:\s+(\S+)\s+\[priv\]'
+        users = re.findall(pattern, result.stdout.strip())
+        
+        dicUsers = [{'user': user, 'count': users.count(user)} for user in set(users)]
+
+        return dicUsers
+
+    else:
+
+        return []
+    
