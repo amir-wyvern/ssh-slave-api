@@ -17,14 +17,27 @@ class SshAccount(BaseModel):
 
 class CreateSsh(BaseModel):
 
+    ignore_exists_users: bool
     users : List[SshAccount]
+
+class CreateSshResponse(BaseModel):
+
+    exists_users: List[str]
+    success_users : List[str]
+
+class DeleteSshResponse(BaseModel):
+
+    not_exists_users: List[str]
+    success_users : List[str]
 
 class DeleteSsh(BaseModel):
 
+    ignore_not_exists_users: bool
     users : List[str]
     
 class BlockSsh(BaseModel):
 
+    ignore_not_exists_users: bool
     users : List[str]
 
 
