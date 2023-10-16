@@ -44,6 +44,7 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
     
     subprocess.run(["chmod", "o+rx", '/home/restricted.sh'])
 
+
     try:
         
         subprocess.run(['groupadd', 'blockUsers'])
@@ -66,8 +67,6 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
             else:
                 print(line, end='')
 
-        with open('/home/init.txt', 'w') as f:
-            f.write('wyvern')
 
         username = 'manager'
         password = request.manager_password
@@ -88,11 +87,15 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
     try:
         subprocess.run(['usermod', '-aG', 'sudo', 'manager'])
         subprocess.run(['systemctl', 'restart', 'sshd'])
+        subprocess.run(['echo', f'{username} ALL=\(ALL\) NOPASSWD: ALL', '>>', '/etc/sudoers'])
         
     except Exception as e:
         logger.error(f'[init server] Exception (error: {e})')
         raise HTTPException(status_code= status.HTTP_500_INTERNAL_SERVER_ERROR , detail={'message': f'error [{e}]', 'internal_code': 3500})
     
+    with open('/home/init.txt', 'w') as f:
+        f.write('wyvern')
+
     return 'Server Successfuly initial'
     
 
