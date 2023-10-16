@@ -87,7 +87,6 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
     try:
         subprocess.run(['usermod', '-aG', 'sudo', 'manager'])
         subprocess.run(['systemctl', 'restart', 'sshd'])
-        subprocess.run(['echo', f'{username} ALL=\(ALL\) NOPASSWD: ALL', '>>', '/etc/sudoers'])
         
     except Exception as e:
         logger.error(f'[init server] Exception (error: {e})')
