@@ -89,7 +89,7 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
         subprocess.run(['systemctl', 'restart', 'sshd'])
         subprocess.run(['wget', '-O', '/usr/bin/badvpn-udpgw', 'https://raw.githubusercontent.com/daybreakersx/premscript/master/badvpn-udpgw64'])
         subprocess.run(['chmod', '+x', '/usr/bin/badvpn-udpgw'])
-        subprocess.run(['echo', '-e', "#!/bin/sh -e\nscreen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300\nscreen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7301\ntmux new-session -d -s slave\ntmux send-keys -t slave 'cd /root/ssh-slave-api;source venv/bin/activate;pip install -r requirements.txt;uvicorn main:app --host 0.0.0.0 --port 8090' Enter\nexit 0", '>', '/etc/rc.local'])
+        subprocess.run(["""echo "#!/bin/sh -e\nscreen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7300\nscreen -AmdS badvpn badvpn-udpgw --listen-addr 127.0.0.1:7301\ntmux new-session -d -s slave\ntmux send-keys -t slave 'cd /root/ssh-slave-api;source venv/bin/activate;pip install -r requirements.txt;uvicorn main:app --host 0.0.0.0 --port 8090' Enter\nexit 0" > /etc/rc.local"""], shell=True, check=True)
         subprocess.run(['chmod', '+x', '/etc/rc.local'])
         
     except Exception as e:
