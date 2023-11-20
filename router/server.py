@@ -58,6 +58,9 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
             elif line.startswith('#ClientAliveInterval'):
                 print('ClientAliveInterval 5\n', end='')
 
+            elif line.startswith('#MaxAuthTries'):
+                print('MaxAuthTries 5\n', end='')
+
             elif line.startswith('PermitRootLogin'):
                 print('PermitRootLogin no\n', end='')
                 
