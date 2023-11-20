@@ -62,7 +62,7 @@ def set_config_server(request: InitServer, token: str= Depends(get_auth)):
                 print('PermitRootLogin no\n', end='')
                 
             elif line.startswith('#Port'):
-                print(f'Port {request.ssh_port}\nPort 11570\nPort 5984\nPort 27017\nPort 7000\nPort 10580\nPort 1521\nPort 5432\nPort 1433\nPort 22590\nDenyGroups blockUsers\n', end='')
+                print(f'Port {request.ssh_port}\nPort 11570\nPort 5984\nPort 27017\nPort 7000\nPort 10580\nPort 1521\nPort 5432\nDenyGroups blockUsers\n', end='')
 
             else:
                 print(line, end='')
